@@ -2,6 +2,7 @@
 #define RESOURCE_H
 
 #include <QDateTime>
+#include <QVariant>
 #include <vector>
 
 class QString;
@@ -48,6 +49,7 @@ extern const char *RAttrClass;
 extern const char *RAttrId;
 extern const char *RAttrUniqueId;
 extern const char *RAttrProductId;
+extern const char *RAttrSleeper;
 extern const char *RAttrSwVersion;
 extern const char *RAttrLastAnnounced;
 extern const char *RAttrLastSeen;
@@ -163,8 +165,10 @@ extern const char *RConfigPowerOnLevel;
 extern const char *RConfigPulseConfiguration;
 extern const char *RConfigPreset;
 extern const char *RConfigMelody;
-extern const char *RConfigTempThreshold;
-extern const char *RConfigHumiThreshold;
+extern const char *RConfigTempMaxThreshold;
+extern const char *RConfigTempMinThreshold;
+extern const char *RConfigHumiMaxThreshold;
+extern const char *RConfigHumiMinThreshold;
 extern const char *RConfigVolume;
 extern const char *RConfigReachable;
 extern const char *RConfigSchedule;
@@ -242,18 +246,21 @@ class  ResourceItemDescriptor
 public:
     ResourceItemDescriptor() :
         type(DataTypeUnknown),
+        qVariantType(QVariant::Invalid),
         suffix(RInvalidSuffix),
         validMin(0),
         validMax(0) { }
 
-    ResourceItemDescriptor(ApiDataType t, const char *s, qint64 min = 0, qint64 max = 0) :
+    ResourceItemDescriptor(ApiDataType t, QVariant::Type v, const char *s, qint64 min = 0, qint64 max = 0) :
         type(t),
+        qVariantType(v),
         suffix(s),
         validMin(min),
         validMax(max) { }
 
     bool isValid() const { return (type != DataTypeUnknown && suffix); }
     ApiDataType type;
+    QVariant::Type qVariantType;
     const char *suffix;
     qint64 validMin;
     qint64 validMax;

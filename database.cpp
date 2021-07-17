@@ -3174,7 +3174,8 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
             item = sensor.addItem(DataTypeInt32, RStateButtonEvent);
             item->setValue(0);
 
-            if (sensor.modelId().startsWith(QLatin1String("lumi.sensor_cube")))
+            if (sensor.modelId().startsWith(QLatin1String("lumi.sensor_cube")) ||
+                sensor.modelId() == QLatin1String("lumi.remote.cagl01"))
             {
                 sensor.addItem(DataTypeInt32, RStateGesture);
             }
@@ -3189,7 +3190,12 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
             {
                 sensor.addItem(DataTypeUInt16, RStateX);
                 sensor.addItem(DataTypeUInt16, RStateY);
-                sensor.addItem(DataTypeUInt16, RStateAngle);
+                sensor.addItem(DataTypeInt16, RStateAngle);
+            }
+            else if (sensor.modelId() == QLatin1String("TERNCY-SD01"))
+            {
+                sensor.addItem(DataTypeInt16, RStateAngle);
+                sensor.addItem(DataTypeUInt16, RStateEventDuration);
             }
         }
         else if (sensor.type().endsWith(QLatin1String("LightLevel")))
@@ -3268,6 +3274,8 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
             }
             item = sensor.addItem(DataTypeInt16, RStatePressure);
             item->setValue(0);
+            item = sensor.addItem(DataTypeInt16, RConfigOffset);
+            item->setValue(0);
         }
         else if (sensor.type().endsWith(QLatin1String("Presence")))
         {
@@ -3275,7 +3283,8 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
             {
                 clusterId = clusterId ? clusterId : OCCUPANCY_SENSING_CLUSTER_ID;
                 if (sensor.modelId().startsWith(QLatin1String("FLS")) ||
-                    sensor.modelId().startsWith(QLatin1String("SML00")))
+                    sensor.modelId().startsWith(QLatin1String("SML00")) ||
+                    sensor.modelId().startsWith(QLatin1String("MOSZB-1")))
                 {
                     // TODO write and recover min/max to db
                     deCONZ::NumericUnion dummy;
@@ -3312,6 +3321,11 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                 item->setValue(0);
                 item = sensor.addItem(DataTypeUInt8, RConfigSensitivityMax);
                 item->setValue(R_SENSITIVITY_MAX_DEFAULT);
+            }
+            else if (sensor.modelId().startsWith(QLatin1String("MOSZB-1")) && clusterId == OCCUPANCY_SENSING_CLUSTER_ID) // Develco/frient motion sensor
+            {
+                sensor.addItem(DataTypeUInt16, RConfigDelay)->setValue(0);
+                sensor.addItem(DataTypeUInt16, RConfigPending)->setValue(0);
             }
             else
             {
@@ -3378,8 +3392,10 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                 sensor.addItem(DataTypeUInt8, RConfigMelody);
                 sensor.addItem(DataTypeString, RConfigPreset);
                 sensor.addItem(DataTypeUInt8, RConfigVolume);
-                sensor.addItem(DataTypeString, RConfigTempThreshold);
-                sensor.addItem(DataTypeString, RConfigHumiThreshold);
+                sensor.addItem(DataTypeInt8, RConfigTempMaxThreshold);
+                sensor.addItem(DataTypeInt8, RConfigTempMinThreshold);
+                sensor.addItem(DataTypeInt8, RConfigHumiMaxThreshold);
+                sensor.addItem(DataTypeInt8, RConfigHumiMinThreshold);
             }
 
         }
@@ -3530,8 +3546,8 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
             item->setValue(30);
             item = sensor.addItem(DataTypeInt8, RConfigSunsetOffset);
             item->setValue(-30);
-            sensor.addItem(DataTypeString, RConfigLat);
-            sensor.addItem(DataTypeString, RConfigLong);
+            sensor.addItem(DataTypeString, RConfigLat)->setIsPublic(false);
+            sensor.addItem(DataTypeString, RConfigLong)->setIsPublic(false);
             sensor.addItem(DataTypeBool, RStateDaylight);
             sensor.addItem(DataTypeBool, RStateDark);
             sensor.addItem(DataTypeInt32, RStateStatus);
@@ -3639,7 +3655,7 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                 if (sensor.modelId().startsWith(QLatin1String("SPZB"))) // Eurotronic Spirit
                 {
                     sensor.addItem(DataTypeUInt8, RStateValve);
-                    sensor.addItem(DataTypeUInt32, RConfigHostFlags); // hidden
+                    sensor.addItem(DataTypeUInt32, RConfigHostFlags)->setIsPublic(false);
                     sensor.addItem(DataTypeBool, RConfigDisplayFlipped)->setValue(false);
                     sensor.addItem(DataTypeBool, RConfigLocked)->setValue(false);
                     sensor.addItem(DataTypeString, RConfigMode);
@@ -3708,7 +3724,7 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                     // Supported with Danfoss firmware version 1.08
                     sensor.addItem(DataTypeBool, RConfigScheduleOn)->setValue(false);
                     sensor.addItem(DataTypeString, RConfigSchedule);
-                    sensor.addItem(DataTypeInt16, RConfigExternalTemperatureSensor);
+                    sensor.addItem(DataTypeInt16, RConfigExternalTemperatureSensor)->setValue(0);
                     sensor.addItem(DataTypeBool, RConfigExternalWindowOpen)->setValue(false);
                 }
                 else if (sensor.modelId() == QLatin1String("AC201")) // OWON AC201 Thermostat
@@ -3717,6 +3733,13 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                     sensor.addItem(DataTypeString, RConfigMode);
                     sensor.addItem(DataTypeString, RConfigFanMode);
                     sensor.addItem(DataTypeString, RConfigSwingMode);
+                }
+                else if (sensor.modelId() == QLatin1String("iTRV")) // Drayton Wiser Radiator Thermostat
+                {
+                    sensor.addItem(DataTypeUInt8, RStateValve);
+                    sensor.addItem(DataTypeInt16, RConfigCoolSetpoint);
+                    sensor.addItem(DataTypeString, RConfigMode);
+                    sensor.addItem(DataTypeBool, RConfigLocked)->setValue(false);
                 }
                 else if (sensor.modelId() == QLatin1String("TH1300ZB")) // sinope thermostat
                 {
@@ -4118,8 +4141,7 @@ static int sqliteLoadAllSensorsCallback(void *user, int ncols, char **colval , c
                         item = sensor.item(RConfigGroup);
                         if (item && !item->toString().isEmpty() && item->toString() != QLatin1String("0"))
                         {
-                            Event e(RSensors, REventValidGroup, sensor.id());
-                            d->enqueueEvent(e);
+                            enqueueEvent(Event(RSensors, REventValidGroup, sensor.id()));
                         }
                     }
                 }
@@ -4884,11 +4906,11 @@ void DeRestPluginPrivate::saveDb()
 
             i->setNeedSaveDatabase(false);
 
-            /*
             if (i->state() == LightNode::StateDeleted)
             {
                 // delete LightNode from db (if exist)
-                QString sql = QString("DELETE FROM nodes WHERE id='%1'").arg(i->id());
+                QString sql = QString("DELETE FROM nodes WHERE mac='%1'").arg(i->uniqueId());
+                sql.append(QString("; DELETE FROM devices WHERE mac = '%1'").arg(generateUniqueId(i->address().ext(), 0, 0)));
 
                 errmsg = NULL;
                 rc = sqlite3_exec(db, sql.toUtf8().constData(), NULL, NULL, &errmsg);
@@ -4904,9 +4926,6 @@ void DeRestPluginPrivate::saveDb()
 
                 continue;
             }
-            */
-
-            QString lightState((i->state() == LightNode::StateDeleted ? "deleted" : "normal"));
 
             std::vector<GroupInfo>::const_iterator gi = i->groups().begin();
             std::vector<GroupInfo>::const_iterator gend = i->groups().end();
@@ -4920,6 +4939,7 @@ void DeRestPluginPrivate::saveDb()
                 }
             }
 
+            const QString lightState = "normal";
             QString ritems = i->resourceItemsToJson();
             QString sql = QString(QLatin1String("REPLACE INTO nodes (id, state, mac, name, groups, endpoint, modelid, manufacturername, swbuildid, ritems) VALUES ('%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8', '%9', '%10')"))
                     .arg(i->id())
@@ -4932,11 +4952,6 @@ void DeRestPluginPrivate::saveDb()
                     .arg(i->manufacturer())
                     .arg(i->swBuildId())
                     .arg(ritems);
-
-            if (i->state() == LightNode::StateDeleted)
-            {
-                sql.append(QString("; DELETE FROM devices WHERE mac = '%1'").arg(generateUniqueId(i->address().ext(), 0, 0)));
-            }
 
             DBG_Printf(DBG_INFO_L2, "DB sql exec %s\n", qPrintable(sql));
             errmsg = NULL;
@@ -5314,11 +5329,11 @@ void DeRestPluginPrivate::saveDb()
 
             i->setNeedSaveDatabase(false);
 
-            /*
             if (i->deletedState() == Sensor::StateDeleted)
             {
                 // delete sensor from db (if exist)
-                QString sql = QString("DELETE FROM sensors WHERE sid='%1'").arg(sid);
+                QString sql = QString("DELETE FROM sensors WHERE uniqueid='%1'").arg(i->uniqueId());
+                sql.append(QString("; DELETE FROM devices WHERE mac = '%1'").arg(generateUniqueId(i->address().ext(), 0, 0)));
 
                 errmsg = NULL;
                 rc = sqlite3_exec(db, sql.toUtf8().constData(), NULL, NULL, &errmsg);
@@ -5334,11 +5349,11 @@ void DeRestPluginPrivate::saveDb()
 
                 continue;
             }
-            */
+
             QString stateJSON = i->stateToString();
             QString configJSON = i->configToString();
             QString fingerPrintJSON = i->fingerPrint().toString();
-            QString deletedState((i->deletedState() == Sensor::StateDeleted ? "deleted" : "normal"));
+            const QString deletedState = "normal";
 
             QString sql = QString(QLatin1String("REPLACE INTO sensors (sid, name, type, modelid, manufacturername, uniqueid, swversion, state, config, fingerprint, deletedState, mode) VALUES ('%1', '%2', '%3', '%4', '%5', '%6', '%7', '%8', '%9', '%10', '%11', '%12')"))
                     .arg(i->id())
@@ -5353,11 +5368,6 @@ void DeRestPluginPrivate::saveDb()
                     .arg(fingerPrintJSON)
                     .arg(deletedState)
                     .arg(QString::number(i->mode()));
-
-            if (i->deletedState() == Sensor::StateDeleted)
-            {
-                sql.append(QString("; DELETE FROM devices WHERE mac = '%1'").arg(generateUniqueId(i->address().ext(), 0, 0)));
-            }
 
             DBG_Printf(DBG_INFO_L2, "DB sql exec %s\n", qPrintable(sql));
             errmsg = NULL;
